@@ -1,0 +1,33 @@
+git add <filename>
+git status
+git commit -m '<comments>'
+git remote add origin https://github.com/marcoapc/<repositoryname>.git
+git push -u origin master	
+
+www.github.com
+
+*** Create repository codes.git (change this name!) ***
+touch README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/marcoapc/codes.git
+git push -u origin master
+
+OR
+
+touch README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin git@github.com:marcoapc/codes.git
+git push -u origin master
+
+*** Updating repository ***
+git remote add origin https://github.com/marcoapc/codes.git
+git push -u origin master
+
+OR
+
+git remote add origin git@github.com:marcoapc/codes.git
+git push -u origin master
