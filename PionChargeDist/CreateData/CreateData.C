@@ -29,7 +29,13 @@ Double_t monopole(Float_t Q2, Float_t G2 = 0.507205) {
 	return (1.0 / (1.0+(Q2/G2)));
 }
 
-int CreateData(Float_t Q2min=0.0, Float_t Q2max=100.0, Int_t npts=5000, TString outfile="out.txt") {
+// Return Form Factor relative to a dipole:
+// F(Q2) = 1.0 / (1.0 + Q2/G2)^2
+Double_t dipole(Float_t Q2, Float_t G2 = 0.71) {
+	return (1.0 / pow(1.0+(Q2/G2),2));
+}
+
+int CreateData(Float_t Q2min=0.0, Float_t Q2max=1000.0, Int_t npts=5000, TString outfile="out.txt") {
 	Int_t i;
 	Float_t Q2, FQ2;
 	ofstream fout;
@@ -41,9 +47,10 @@ int CreateData(Float_t Q2min=0.0, Float_t Q2max=100.0, Int_t npts=5000, TString 
 	}
 	for(i=0;i<npts;i++) {
 		Q2 = Q2min + i*(Q2max-Q2min)/((double)(npts-1));
-		FQ2 = monopole(Q2);
+		//FQ2 = monopole(Q2);
+		FQ2 = dipole(Q2);
 		// Q2 F(Q2) sF
-		fout << Form("%.3f\t%.3f\t%.3f\n", Q2, FQ2, 0.05*FQ2);
+		fout << Form("%.8f\t%.8f\t%.8f\n", Q2, FQ2, 0.05*FQ2);
 	}
 	fout.close();
 	return 0;

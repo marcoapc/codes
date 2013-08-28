@@ -117,7 +117,7 @@ int UncertaintyPion(TString inData) {
 
 	// Fitting F x Q2 for Q2->0 (analysis of R)
 	///// CONFIGURE HERE! //////
-	Double_t MaxRangeForFit = 0.1; // 100*x% of data range - can change as one wants!
+	Double_t MaxRangeForFit = 0.1; // 100*x% of data range - can change as one wants! - using 0.1
 
 	// Calculating R1 and R2
 	Double_t R1 = CalcR1(range, FF, MaxRangeForFit);
@@ -134,6 +134,11 @@ int UncertaintyPion(TString inData) {
 	// upper limit of summation
 	Int_t n1;
 	Double_t Ecut_F1 = range[1];
+
+
+//R1 = 3.31; //Dipole from paper (REMOVER!)
+
+
 	R1 = R1*5.068;	// CONVERT R1 TO GeV^-1!!!!!!
 	for(n1=1; (ZeroBesselJ0(n1)/R1) <= TMath::Sqrt(Ecut_F1); n1++);
 	n1--; // The last term didn't match the condition, so subtr. one
@@ -210,12 +215,12 @@ int UncertaintyPion(TString inData) {
 
 	// Creating the NTuple and evaluating the sum (eq 5)
 	cout << "<Marco> Evaluating charge distribution..." << endl;
-	Float_t rangeB[2] = {0.0, 1.5};
+	Float_t rangeB[2] = {0.0, 10.5};
 	Int_t nb = 100; // number of points (in b) to be calculated
 	TTree *tr = new TTree("tr","Tree_ro1");
 	//TNtuple *ro1 = new TNtuple("ro1","ro_ch(b)","b:ro");
-	Float_t ba, sum, Xn, tauN, F1, F2;
-	Double_t Q2n;
+	Float_t ba, Xn, tauN, F1, F2;
+	Float_t Q2n, sum;
 	TBranch *b = tr->Branch("b",&ba,"b/F");
 	// Filling b
 	for(ba=rangeB[0]; ba<=rangeB[1]; ba += (rangeB[1]-rangeB[0])/((double)(nb-1))) { b->Fill(); }
@@ -237,10 +242,10 @@ int UncertaintyPion(TString inData) {
 				if(j==0 && bb==rangeB[0]) { cout << Q2n << " "; };
 				//tauN = Q2n/(4.0*pow(0.93827,2.0));
 				F1=fits[j]->Eval(Q2n);
-				sum += (1.0/pow(TMath::BesselJ1(Xn),2))*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
+				sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
 			}
 			sum /= (TMath::Pi()*pow(R1/5.068,2.0));
-			//cout << "<Marco> b = " << b << "\t ro = " << sum << endl;
+			cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
 			ros[j]->Fill();
 		}
 		if(j==0) { cout << endl; };
