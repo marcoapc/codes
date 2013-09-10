@@ -1,3 +1,7 @@
+git commit -a
+git push -u origin master
+
+
 git add <filename>
 git status
 git commit -m '<comments>'

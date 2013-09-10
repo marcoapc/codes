@@ -26,7 +26,7 @@
 
 //TF1 *MakeGe(TNtuple *pdata, Double_t *range);
 //TF1 *MakeGm(TNtuple *pdata, Double_t *range);
-void PlotFF(TNtuple *FF);
+void PlotFF(TNtuple *FF, Double_t R1, Double_t *range);
 Double_t CalcR1(Double_t *range, TNtuple *FF, Double_t MaxRangeForFit, Int_t Mgraph=0);
 TF1 *FF1fit(TNtuple *FF, Double_t *range, Int_t q2f=1);
 //Double_t CalcR2(TNtuple *pdata, Double_t *range, Double_t *rangeSmallQ2, TNtuple *FF, Double_t FracRangeForFit);
@@ -112,15 +112,15 @@ int UncertaintyPion(TString inData) {
 	cout << "<Marco> Last: " << Q2 << a[3] << endl;
 	//FF->Scan();
 */	
-	// Plotting F1
-	PlotFF(FF);
-
 	// Fitting F x Q2 for Q2->0 (analysis of R)
 	///// CONFIGURE HERE! //////
 	Double_t MaxRangeForFit = 0.1; // 100*x% of data range - can change as one wants! - using 0.1
 
-	// Calculating R1 and R2
+	// Calculating R1 and R2 in fm
 	Double_t R1 = CalcR1(range, FF, MaxRangeForFit);
+
+	// Plotting F1
+	PlotFF(FF,R1,range);
 
 	/*************************************
 	 *************************************
@@ -135,10 +135,6 @@ int UncertaintyPion(TString inData) {
 	Int_t n1;
 	Double_t Ecut_F1 = range[1];
 
-
-//R1 = 3.31; //Dipole from paper (REMOVER!)
-
-
 	R1 = R1*5.068;	// CONVERT R1 TO GeV^-1!!!!!!
 	for(n1=1; (ZeroBesselJ0(n1)/R1) <= TMath::Sqrt(Ecut_F1); n1++);
 	n1--; // The last term didn't match the condition, so subtr. one
@@ -150,7 +146,7 @@ int UncertaintyPion(TString inData) {
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 5; // <- NUMBER OF FITS! (200)
+	const int nfits = 20; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -197,6 +193,28 @@ int UncertaintyPion(TString inData) {
 		fitsQ2[i]->Draw("same");
 	}
 	origData2->Draw("psame");
+	// Ideal monopole
+	TF1 *monopole = new TF1("monopole","x*1.0/(1.0+[0]*x)",0.0,range[1]);
+	monopole->SetLineColor(3);
+	monopole->SetLineStyle(1);
+	monopole->SetParameter(0,pow(R1/5.068/0.197327,2.0)/6.0);
+	monopole->Draw("same");
+	// Ideal dipole
+	TF1 *dipole = new TF1("dipole","x*1.0/pow(1.0+[0]*x,2.0)",0.0,range[1]);
+	dipole->SetLineColor(6);
+	dipole->SetLineStyle(1);
+	dipole->SetParameter(0,pow(R1/5.068/0.197327,2.0)/12.0);
+	dipole->Draw("same");
+	// Legend 
+	TLegend *leg = new TLegend(0.14,0.72,0.5,0.87);
+	leg->SetTextFont(50);
+	leg->SetTextSize(0.025);
+	leg->AddEntry(origData2,"Data points","p");
+	leg->AddEntry(fitsQ2[0],"Evaluated fits","l");
+	leg->AddEntry(monopole,Form("Monopole (R = %.3f fm)",sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0))));
+	leg->AddEntry(dipole,Form("Dipole (R = %.3f fm)",sqrt(12.0*pow(0.197327,2.0)*dipole->GetParameter(0))));
+	leg->Draw();
+	// Saving figure
 	pad2png(cf2,"MultiFitsQ2.png");	
 
 	// Histograms of the fitted parameters
@@ -215,7 +233,7 @@ int UncertaintyPion(TString inData) {
 
 	// Creating the NTuple and evaluating the sum (eq 5)
 	cout << "<Marco> Evaluating charge distribution..." << endl;
-	Float_t rangeB[2] = {0.0, 10.5};
+	Float_t rangeB[2] = {0.0, 1.5};
 	Int_t nb = 100; // number of points (in b) to be calculated
 	TTree *tr = new TTree("tr","Tree_ro1");
 	//TNtuple *ro1 = new TNtuple("ro1","ro_ch(b)","b:ro");
@@ -245,7 +263,7 @@ int UncertaintyPion(TString inData) {
 				sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
 			}
 			sum /= (TMath::Pi()*pow(R1/5.068,2.0));
-			cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
+			//cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
 			ros[j]->Fill();
 		}
 		if(j==0) { cout << endl; };
@@ -289,7 +307,11 @@ int UncertaintyPion(TString inData) {
 }
 
 // Function to plot FF
-void PlotFF(TNtuple *FF) {
+void PlotFF(TNtuple *FF, Double_t R1, Double_t *range) {
+
+	//To use my R1, comment following line. Otherwise using PDG radius
+	R1 = 0.672; //fm
+
 	// First simple fits of Q^4F x Q^2
 	TCanvas *FF1 = new TCanvas("FF1", "Q2F1xQ2",600,600);
 	FF1->SetGrid();
@@ -310,12 +332,34 @@ void PlotFF(TNtuple *FF) {
 	//FF1m->Add(FF1gr[1],"c");
 	FF1m->SetTitle("Q^{2}.F_{#pi} x Q^{2}");
 	FF1m->Draw("al");
+
+	TF1 *monopole = new TF1("monopole","x*1.0/(1.0+[0]*x)",0.0,range[1]);
+	monopole->SetLineColor(3);
+	monopole->SetLineStyle(1);
+	monopole->SetParameter(0,pow(R1/0.197327,2.0)/6.0);
+	monopole->Draw("same");
+
+	TF1 *dipole = new TF1("dipole","x*1.0/pow(1.0+[0]*x,2.0)",0.0,range[1]);
+	dipole->SetLineColor(6);
+	dipole->SetLineStyle(1);
+	dipole->SetParameter(0,pow(R1/0.197327,2.0)/12.0);
+	dipole->Draw("same");
+
 	FF1m->GetXaxis()->SetTitle("Q^{2} (GeV^{2})");
 	FF1m->GetYaxis()->SetTitle("Q^{2}.F_{#pi}");
 	FF1m->GetXaxis()->CenterTitle();
 	FF1m->GetYaxis()->CenterTitle();
 	FF1m->GetYaxis()->SetTitleOffset(1.5);
 	
+	// Legend 
+	TLegend *leg = new TLegend(0.14,0.72,0.5,0.87);
+	leg->SetTextFont(50);
+	leg->SetTextSize(0.025);
+	leg->AddEntry(FF1gr[0],"Data points","lp");
+	leg->AddEntry(monopole,Form("Monopole (R = %.3f fm)",sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0))));
+	leg->AddEntry(dipole,Form("Dipole (R = %.3f fm)",sqrt(12.0*pow(0.197327,2.0)*dipole->GetParameter(0))));
+	leg->Draw();
+
 	pad2png(FF1,"Pion_Q2F1.png");
 	//delete FF1;
 
