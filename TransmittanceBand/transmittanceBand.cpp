@@ -8,7 +8,7 @@
 
 void Instructions(void);
 
-int transmittanceBand(TString maindir) {
+int transmittanceBand(TString maindir, TString name, TCanvas *c2, TLegend *leg, Int_t fcolor, TGraph *grmin, TGraph *grmax, TGraph *grshade, TGraph *grmean, Int_t first=0) {
 	Int_t i,j,k;
 	Float_t count;
 	Float_t wl_range[2] = {200.0, 900.0};
@@ -127,34 +127,41 @@ int transmittanceBand(TString maindir) {
 		//cout << Form("wl=%.0f\tMean=%.2f\tStd=%.2f",wl->GetValue(),Tmean[k],Tstd[k]) << endl;
 	}
 
-	TCanvas *c2 = new TCanvas("c2","Band",600,600);
-	TGraph *grmin = new TGraph(wl_size,w,Tbandmin);
-	TGraph *grmax = new TGraph(wl_size,w,Tbandmax);
-	TGraph *grshade = new TGraph(2*wl_size);
+	//TCanvas *c2 = new TCanvas("c2","Band",600,600);
+	c2->cd();
+	grmean = new TGraph(wl_size,w,Tmean);
+
+	grmin = new TGraph(wl_size,w,Tbandmin);
+	grmax = new TGraph(wl_size,w,Tbandmax);
+	grshade = new TGraph(2*wl_size);
 	for(k=0;k<wl_size;k++) {
 		cout << "wl=" << w[k] << "\tTmin=" << Tbandmin[k] << "\tTmax=" << Tbandmax[k] << endl;
 		grshade->SetPoint(k,w[k],Tbandmax[k]);
 		grshade->SetPoint(wl_size+k,w[wl_size-k-1],Tbandmin[wl_size-k-1]);
 	}
-	grshade->SetFillStyle(3013);
-	grshade->SetFillColor(16);
+	grshade->SetFillStyle(3144);
+	grshade->SetFillColor(fcolor);
 	grmin->SetTitle("");
 	grmin->GetXaxis()->SetTitle("Wavelength / nm");
 	grmin->GetXaxis()->SetLimits(200.0,900.0);
 	grmin->GetYaxis()->SetTitle("Transmittance / %");
 	grmin->GetYaxis()->SetTitleOffset(1.3);
 	grmin->GetYaxis()->SetRangeUser(0.0,100.0);
-	grmin->Draw("al");
+	if(first) grmin->Draw("al");
+	else grmin->Draw("lsame");
 	grmax->Draw("lsame");
 	grshade->Draw("fsame");
+	grmean->SetLineColor(fcolor);
+	grmean->SetLineWidth(2);
+	grmean->Draw("lsame");
 
-	TLegend *leg = new TLegend(0.70,0.14,0.87,0.2);
-	leg->SetTextFont(50);
-	leg->SetTextSize(0.025);
-	leg->AddEntry(grshade,"SP30","f");
-	leg->Draw();
+	//TLegend *leg = new TLegend(0.70,0.14,0.87,0.2);
+	//leg->SetTextFont(50);
+	//leg->SetTextSize(0.025);
+	leg->AddEntry(grshade,name,"f");
+	//leg->Draw();
 
-	pad2png(c2,"band.png");
+	//pad2png(c2,"band.png");
 	
 	
 /*	TNtuple *Tdata1 = new TNtuple("Tdata1","Data1","w:T");
@@ -224,18 +231,53 @@ int transmittanceBand(TString maindir) {
 	return 0;
 }
 
+int AllBands(TString SP30, TString SP20) {
+	//if(!maindir.EndsWith("/")) maindir += '/';
+	TCanvas *c2 = new TCanvas("c2","Band",600,600);
+	//MConfigCanvas(c2);
+
+	TLegend *leg = new TLegend(0.70,0.15,0.87,0.25);
+	leg->SetTextFont(50);
+	leg->SetTextSize(0.025);
+	
+	const int ngraph = 4;
+	TGraph *gr30[ngraph];
+	transmittanceBand(SP30,"SP30",c2,leg,3,gr30[0],gr30[1],gr30[2],gr30[3],1);//17
+/*	c2->cd();
+	gr30[0]->Draw("al");
+	gr30[1]->Draw("lsame");
+	gr30[2]->Draw("fsame");
+	gr30[3]->Draw("lsame");
+*/
+	TGraph *gr20[ngraph];
+	transmittanceBand(SP20,"SP20",c2,leg,2,gr20[0],gr20[1],gr20[2],gr20[3]);//16
+/*
+	gr20[0]->Draw("lsame");
+	gr20[1]->Draw("lsame");
+	gr20[2]->Draw("fsame");
+	gr20[3]->Draw("lsame");
+*/
+	leg->Draw();
+
+	pad2png(c2,"band.png");
+	c2->Print("transmittance.eps");
+
+	return 0;
+}
 int main(int argc, char *argv[]) {
-	if(argc!=2) {
+	if(argc!=3) {
 		Instructions();
 		return 0;
 	}
-        return transmittanceBand(argv[1]);
+        //return transmittanceBand(argv[1]);
+	return AllBands(argv[1],argv[2]);
 }
 
 void Instructions(void) {
 	cout << endl << endl << "Usage:" << endl
-	     << "    ./transmittanceBand <mainFolder>" << endl << endl
-	     << "where" << endl << "  <mainFodler> is the folder with csv files." << endl
+	     << "    ./transmittanceBand <SP30> <SP20>" << endl << endl
+	     << "where" << endl << "  <SP30> is the folder with csv files for SP30," << endl
+	     << "  <SP20> is the folder with csv files for SP20." << endl
              << endl << "by Marco Antonio Pannunzio Carmignotto" << "   09/11/2013" << endl << endl;
 	return;
 }

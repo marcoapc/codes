@@ -146,7 +146,7 @@ int UncertaintyPion(TString inData) {
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 20; // <- NUMBER OF FITS! (200)
+	const int nfits = 200; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -175,6 +175,7 @@ int UncertaintyPion(TString inData) {
 	}
 	origData->Draw("psame");
 	pad2png(cf,"MultiFits.png");
+	cf->Print("MultiFits.eps");
 
 	// New plot of fittings, with Q2xF
 	TCanvas *cf2 = new TCanvas("cf2","MultiFits2",600,600);
@@ -216,6 +217,7 @@ int UncertaintyPion(TString inData) {
 	leg->Draw();
 	// Saving figure
 	pad2png(cf2,"MultiFitsQ2.png");	
+	cf2->Print("MultiFitsQ2.eps");
 
 	// Histograms of the fitted parameters
 	TCanvas *pp[nparFit];
@@ -225,6 +227,7 @@ int UncertaintyPion(TString inData) {
 		MConfigHist(parFit[j],Form("par[%d]",j),"Parameter value","counts");
 		parFit[j]->Draw();
 		pad2png(pp[j],Form("MultiFit_par[%d].png",j));
+		pp[j]->Print(Form("MultiFit_par%d.eps",j));
 	}
 
 	////////////////////////////////////////
@@ -298,6 +301,7 @@ int UncertaintyPion(TString inData) {
 	}
 	// Saving Ge Canvas
 	pad2png(c5,"ro_ch-F1.png");
+	c5->Print("ro_ch-F1.eps");
 	//delete c5;
 
 	// Concluding code
@@ -361,6 +365,7 @@ void PlotFF(TNtuple *FF, Double_t R1, Double_t *range) {
 	leg->Draw();
 
 	pad2png(FF1,"Pion_Q2F1.png");
+	FF1->Print("Pion_Q2F1.eps");
 	//delete FF1;
 
 	return;
@@ -472,6 +477,7 @@ Double_t CalcR1(Double_t *range, TNtuple *FF, Double_t MaxRangeForFit, Int_t Mgr
 
 	// Saving F1 Canvas
 	pad2png(c3,"Pion_F1_Rfit.png");
+	c3->Print("Pion_F1_Rfit.eps");
 	//delete c3;
 
 	return R1;
@@ -554,8 +560,14 @@ TF1 *FF1fit(TNtuple *FF, Double_t *range, Int_t q2f) {
 	Plot[2]->Draw("acsame");
 	//end loop
 	legfF->Draw();
-	if(q2f)	pad2png(fF1,"Pion_FF_Fitting_q2f1.png");
-	else pad2png(fF1,"Pion_FF_Fitting.png");
+	if(q2f)	{
+		pad2png(fF1,"Pion_FF_Fitting_q2f1.png");
+		fF1->Print("Pion_FF_Fitting_q2f1.eps");
+	}
+	else {
+		pad2png(fF1,"Pion_FF_Fitting.png");
+		fF1->Print("Pion_FF_Fitting.eps");
+	}
 
 	return fitF1[2]; //choose here which function to return
 }
