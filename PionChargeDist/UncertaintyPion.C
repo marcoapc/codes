@@ -116,7 +116,7 @@ int UncertaintyPion(TString inData) {
 	///// CONFIGURE HERE! //////
 	Double_t MaxRangeForFit = 0.1; // 100*x% of data range - can change as one wants! - using 0.1
 
-	// Calculating R1 and R2 in fm
+	// Calculating R1 and R2 in fm, from Q2->0 data
 	Double_t R1 = CalcR1(range, FF, MaxRangeForFit);
 
 	// Plotting F1
@@ -140,13 +140,13 @@ int UncertaintyPion(TString inData) {
 	n1--; // The last term didn't match the condition, so subtr. one
 	cout << "<Marco> Considering " << n1 << " terms for ro_ch (F1)." << endl;
 
-	// I think I should not use it anymore...
-	//TF1 *Ffitted = FF1fit(FF, range, 1);
+	// Doesn't make any difference, just create plot (don't use Ffitted)
+	TF1 *Ffitted = FF1fit(FF, range, 1);
 
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 200; // <- NUMBER OF FITS! (200)
+	const int nfits = 20; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -208,7 +208,7 @@ int UncertaintyPion(TString inData) {
 	dipole->Draw("same");
 	// Legend 
 	TLegend *leg = new TLegend(0.14,0.72,0.5,0.87);
-	leg->SetTextFont(50);
+	//leg->SetTextFont(50);
 	leg->SetTextSize(0.025);
 	leg->AddEntry(origData2,"Data points","p");
 	leg->AddEntry(fitsQ2[0],"Evaluated fits","l");
@@ -256,23 +256,40 @@ int UncertaintyPion(TString inData) {
 		if(j==0) { cout << endl << "    invoqued Q2 = "; }
 		for(bb=rangeB[0]; bb<=rangeB[1]; bb += (rangeB[1]-rangeB[0])/((double)(nb-1))) {
 			sum=0.0;
-			for(i=1; i<=n1; i++) {
-				// R1 in GeV^-1
-				Xn = ZeroBesselJ0(i);
-				Q2n = pow(Xn/R1,2.0);
-				if(j==0 && bb==rangeB[0]) { cout << Q2n << " "; };
-				//tauN = Q2n/(4.0*pow(0.93827,2.0));
-				F1=fits[j]->Eval(Q2n);
-				sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
+			if(bb<=(R1/5.068)) {
+				for(i=1; i<=n1; i++) {
+					// R1 in GeV^-1
+					Xn = ZeroBesselJ0(i);
+					Q2n = pow(Xn/R1,2.0);
+					if(j==0 && bb==rangeB[0]) { cout << Q2n << " "; };
+					//tauN = Q2n/(4.0*pow(0.93827,2.0));
+					F1=fits[j]->Eval(Q2n);
+					sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
+				}
+				sum /= (TMath::Pi()*pow(R1/5.068,2.0));
+				//cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
 			}
-			sum /= (TMath::Pi()*pow(R1/5.068,2.0));
-			//cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
+			else sum=0.0;
 			ros[j]->Fill();
 		}
 		if(j==0) { cout << endl; };
 	}
 	f->Write();
 	
+	//Writting exact solutions (for ideal complete Q2 data), from analytical solution
+	//MONOPOLE
+	TF1 *solMonopole = new TF1("solMonopole","(1.0/(2.0*TMath::Pi()))*(6.0/pow([0],2))*TMath::BesselK0(sqrt(6.0)*x/[0])",0.0,2.0); //[0] is R1 in units of b
+	Double_t par_solMonopole[1];
+	par_solMonopole[0] = R1/5.068; //in fm
+	solMonopole->SetParameters(par_solMonopole);
+	MConfigLines(solMonopole,2);
+	//DIPOLE
+	TF1 *solDipole = new TF1("solDipole","(6.0*sqrt(3.0)*x/(TMath::Pi()*pow([0],3)))*TMath::BesselK1(sqrt(12.0)*x/[0])",0.0,2.0); //[0] is R1 in units of b
+	Double_t par_solDipole[1];
+	par_solDipole[0] = R1/5.068; //in fm
+	solDipole->SetParameters(par_solDipole);
+	MConfigLines(solDipole,3);
+
 	// Plotting
 	cout << "Plotting charge distribution evaluation..." << endl;
 	TCanvas *c5 = new TCanvas("c5","ChargeDistributionF1",600,600);
@@ -293,12 +310,25 @@ int UncertaintyPion(TString inData) {
 			gr5[i]->GetXaxis()->SetTitle("b (fm)");
 			gr5[i]->GetYaxis()->SetTitle("#rho_{ch}(b) (fm^{-2})");
 			gr5[i]->GetXaxis()->CenterTitle();
+			gr5[i]->GetXaxis()->SetLimits(0.0,1.0);
 			gr5[i]->GetYaxis()->CenterTitle();
 			gr5[i]->GetYaxis()->SetTitleOffset(1.3);
+			gr5[i]->GetYaxis()->SetRangeUser(-1.0,4.0);
 			gr5[i]->Draw("al");
 		}
 		else gr5[i]->Draw("same");
 	}
+	//Including analytical solutions
+	solMonopole->Draw("lsame");
+	solDipole->Draw("lsame");
+	//Creating Legend
+	TLegend *legb = new TLegend(0.35,0.72,0.85,0.87);
+	//legb->SetTextFont(50);
+	legb->SetTextSize(0.025);
+	legb->AddEntry(gr5[0],"Fitted (monopole + dipole) functions","l");
+	legb->AddEntry(solMonopole,"Monopole - analytical solution","l");
+	legb->AddEntry(solDipole,"Dipole - analytical solution","l");
+	legb->Draw();
 	// Saving Ge Canvas
 	pad2png(c5,"ro_ch-F1.png");
 	c5->Print("ro_ch-F1.eps");
@@ -357,7 +387,7 @@ void PlotFF(TNtuple *FF, Double_t R1, Double_t *range) {
 	
 	// Legend 
 	TLegend *leg = new TLegend(0.14,0.72,0.5,0.87);
-	leg->SetTextFont(50);
+	//leg->SetTextFont(50);
 	leg->SetTextSize(0.025);
 	leg->AddEntry(FF1gr[0],"Data points","lp");
 	leg->AddEntry(monopole,Form("Monopole (R = %.3f fm)",sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0))));
@@ -379,11 +409,11 @@ Double_t CalcR1(Double_t *range, TNtuple *FF, Double_t MaxRangeForFit, Int_t Mgr
 
 	// For F1
 	TCanvas *c3 = new TCanvas("c3","Pion_F1_SmallQ2_Fit",600,600);
-	c3->SetLogy();
+	//c3->SetLogy();
 	c3->SetGrid();
 	c3->GetFrame()->SetBorderSize(10);
 	// Preparing plots
-	FF->Draw("Q2:F1:sF1");
+	FF->Draw("Q2:F1:sF1","","goff");
 	TGraphErrors *gr3 = new TGraphErrors(FF->GetSelectedRows(),FF->GetV1(),FF->GetV2(),0,FF->GetV3());
 	TString opt = "AP";
 	gr3->SetMarkerColor(1);
@@ -397,9 +427,10 @@ Double_t CalcR1(Double_t *range, TNtuple *FF, Double_t MaxRangeForFit, Int_t Mgr
 	gr3->GetXaxis()->CenterTitle();
 	gr3->GetYaxis()->CenterTitle();
 	gr3->GetYaxis()->SetTitleOffset(1.3);
-	gr3->GetXaxis()->SetLimits(0.0,0.5);
+	gr3->GetXaxis()->SetLimits(0.0,0.15);
 	gr3->Draw(opt.Data());
-	gr3->GetYaxis()->SetRangeUser(0.1,1.0);
+	gr3->GetYaxis()->SetRangeUser(0.5,1.0);
+	//gr3->GetYaxis()->SetNdivisions(510,kFALSE);
 	TF1 *polfit = new TF1("polfit","pol1",rangeSmallQ2[0],rangeSmallQ2[1]);
 	polfit->SetLineColor(6);
 	polfit->SetLineStyle(1);
@@ -436,33 +467,39 @@ Double_t CalcR1(Double_t *range, TNtuple *FF, Double_t MaxRangeForFit, Int_t Mgr
 	monopole2->Draw("same");
 	dipole->Draw("same");
 
-	// Calculating R1 = 5*sqrt(|<b^2>|)
-	Double_t R1;
-	R1 = sqrt(6.0*pow(0.197327,2)*monopole->GetParameter(0));
+	// Calculating R1
+	Double_t R1_poli, R1_mono, R1_mono2, R1_di, R1;
+	R1_poli = sqrt(-6.0*pow(0.197327,2)*polfit->GetParameter(1));
+	R1_mono = sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0));
+	R1_mono2 = sqrt(6.0*monopole2->GetParameter(0)*pow(0.197327,2.0)*monopole2->GetParameter(1));
+	R1_di    = sqrt(12.0*pow(0.197327,2.0)*dipole->GetParameter(0));
+
+	R1 = R1_mono;
 	// 1 fm = 5.068 GeV^{-1}
 	cout << "<Marco> Evaluating R1 = Sqrt(<r^2>)" << endl
              << "<Marco> polfit = " << polfit->GetParameter(0) << " + Q^2 * " << polfit->GetParameter(1) << endl
-	     << "        #sqrt{<r^2>} = " << sqrt(-6.0*pow(0.197327,2)*polfit->GetParameter(1)) << " fm" << endl
+	     << "        #sqrt{<r^2>} = " << R1_poli << " fm" << endl
 	     << "<Marco> dF1dQ2 = " << dF1dQ2->GetParameter(1) << endl
-	     << "<Marco> Monopole = " << sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0)) << endl
-	     << "<Marco> Monopole2 = " << sqrt(6.0*monopole2->GetParameter(0)*pow(0.197327,2.0)*monopole2->GetParameter(1)) << endl
-	     << "<Marco> Dipole = " << sqrt(12.0*pow(0.197327,2.0)*dipole->GetParameter(0)) << endl << endl 
-	     << "<Marco> IMPORTANT:" << endl
-             << "<Marco> Using R1_monopole = " << R1 << endl << endl;
+	     << "<Marco> Monopole = " << R1_mono << endl
+	     << "<Marco> Monopole2 = " << R1_mono2 << endl
+	     << "<Marco> Dipole = " << R1_di << endl << endl 
+	     << "<Marco> VERY IMPORTANT:" << endl
+             << "<Marco> Using R1 = " << R1 << endl << endl;
 	
 	// Legend F1
 	//TLegend *legF1 = new TLegend(0.3,0.8,0.95,0.92);
-	TLegend *legF1 = new TLegend(0.14,0.14,0.79,0.35);
-	legF1->SetTextFont(50);
+	TLegend *legF1 = new TLegend(0.14,0.14,0.7,0.50);
+	//legF1->SetTextFont(50);
 	legF1->SetTextSize(0.025);
+	legF1->SetHeader(Form("Fitted Q^{2} range: [%.2f, %.2f] GeV^{2}",rangeSmallQ2[0],rangeSmallQ2[1]));
 	//if(PointsOrFits==1) legF1->AddEntry(gr3,"Fitted data");
 	//else 
-	legF1->AddEntry(gr3,"Data points","lp");
-	legF1->AddEntry(polfit,"Linear polynomium");
-	legF1->AddEntry(dF1dQ2,Form("exp(a+b.Q^{2}), range: [%.2f, %.2f] GeV^{2}",rangeSmallQ2[0],rangeSmallQ2[1]));
-	legF1->AddEntry(monopole,Form("#frac{1}{1+A.Q^{2}}, range: [%.2f, %.2f] GeV^{2}",rangeSmallQ2[0],rangeSmallQ2[1]));
-	legF1->AddEntry(monopole2,Form("#frac{A}{1+B.Q^{2}}, range: [%.2f, %.2f] GeV^{2}",rangeSmallQ2[0],rangeSmallQ2[1]));
-	legF1->AddEntry(dipole,Form("#frac{1}{(1+A.Q^{2})^{2}}, range: [%.2f, %.2f] GeV^{2}",rangeSmallQ2[0],rangeSmallQ2[1]));
+	legF1->AddEntry(gr3,"Data points","p");
+	legF1->AddEntry(polfit,Form("Linear polynomium \t#sqrt{<r^{2}>} = %.3f fm",R1_poli));
+	legF1->AddEntry(dF1dQ2,Form("exp(a+b.Q^{2})"));// \t#sqrt{<r^{2}>} = %.3f fm",R1_exp));
+	legF1->AddEntry(monopole,Form("#frac{1}{1+A.Q^{2}} \t#sqrt{<r^{2}>} = %.3f fm",R1_mono));
+	legF1->AddEntry(monopole2,Form("#frac{A}{1+B.Q^{2}} \t#sqrt{<r^{2}>} = %.3f fm",R1_mono2));
+	legF1->AddEntry(dipole,Form("#frac{1}{(1+A.Q^{2})^{2}} \t#sqrt{<r^{2}>} = %.3f fm",R1_di));
 	legF1->Draw();
 /*
 	TPaveText *ptF1 = new TPaveText(0.14,0.14,0.5,0.4,"NDC");
@@ -519,7 +556,7 @@ TF1 *FF1fit(TNtuple *FF, Double_t *range, Int_t q2f) {
 	//TLegend *legfF = new TLegend(0.33,0.7,0.95,0.9);
 	TLegend *legfF = new TLegend(0.16,0.67,0.78,0.87);
 	legfF->AddEntry(ptsPlot,"Experimental data","p");
-	legfF->SetTextFont(72);
+	//legfF->SetTextFont(72);
 	legfF->SetTextSize(0.025);
 	TF1 *fitF1[2];
 	TF1 *fitF1Plot[2];
