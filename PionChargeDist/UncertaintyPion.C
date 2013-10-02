@@ -80,6 +80,9 @@ int UncertaintyPion(TString inData) {
 	range[1] = FF->GetMaximum("Q2");
 	// pdata->Scan(); // to show data
 
+// APAGAR!!!!
+//range[1] = 30.0;
+
 	// Output file
 	TFile *f = new TFile(outFile.Data(),"RECREATE");
 
@@ -138,6 +141,11 @@ int UncertaintyPion(TString inData) {
 	R1 = R1*5.068;	// CONVERT R1 TO GeV^-1!!!!!!
 	for(n1=1; (ZeroBesselJ0(n1)/R1) <= TMath::Sqrt(Ecut_F1); n1++);
 	n1--; // The last term didn't match the condition, so subtr. one
+
+//APAGAR!!!!!!
+//n1=3;
+
+
 	cout << "<Marco> Considering " << n1 << " terms for ro_ch (F1)." << endl;
 
 	// Doesn't make any difference, just create plot (don't use Ffitted)
@@ -146,7 +154,7 @@ int UncertaintyPion(TString inData) {
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 20; // <- NUMBER OF FITS! (200)
+	const int nfits = 1000; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -160,12 +168,12 @@ int UncertaintyPion(TString inData) {
 	TGraph *newData;
 	TF1 *fits[nfits];
 	const int nparFit=3;
-	Double_t par0[nparFit] = {0.6, 1.04, 5.5};
+	Double_t par0[nparFit] = {0.5, 1.2, 1.1};
 	//Double_t par0[nparFit] = {0.25, 0.2, 2.75};
 	TH1F *parFit[nparFit];
 	parFit[0] = new TH1F("par0","MultiFit par[0]",50,0.0,1.0);
-	parFit[1] = new TH1F("par1","MultiFit par[1]",50,0.0,10.0);
-	parFit[2] = new TH1F("par2","MultiFit par[2]",50,0.0,10.0);
+	parFit[1] = new TH1F("par1","MultiFit par[1]",50,0.0,2.0);
+	parFit[2] = new TH1F("par2","MultiFit par[2]",50,0.0,2.0);
 	for(i=0; i<nfits; i++) {
 		newData=MakeNewPoints(FF,r0);
 		fits[i]=ExecuteFit(newData,cf,par0,1); //last 1 means quiet fit, don't show fitted paramenters. If 0, will show fitted parmts.
@@ -184,6 +192,7 @@ int UncertaintyPion(TString inData) {
 	TGraphErrors *origData2 = new TGraphErrors(FF->GetSelectedRows(),FF->GetV1(),FF->GetV2(),0,FF->GetV3());
 	MConfigPoints(origData2,2);
 	MConfigAxis(origData2,"Multi Fits of F_{#pi}","Q^{2} (GeV^{2})","Q^{2}.F_{#pi}(Q^{2})");
+	origData2->GetXaxis()->SetLimits(0.0,1.1*range[1]);
 	origData2->Draw("ap");
 	TF1 *fitsQ2[nfits];
 
@@ -250,7 +259,7 @@ int UncertaintyPion(TString inData) {
 	Float_t bb;
 	TBranch *ros[nfits];
 	for(j=0; j<nfits; j++) {
-		cout << "Calculating fit " << j+1 << "/" << nfits << endl;
+		cout << "Calculating charge dist. for fit " << j+1 << "/" << nfits << endl;
 		ros[j] = tr->Branch(Form("ro%d",j),&sum,Form("ro%d/F",j));
 		// Running the calculation for each b
 		if(j==0) { cout << endl << "    invoqued Q2 = "; }
@@ -289,6 +298,16 @@ int UncertaintyPion(TString inData) {
 	par_solDipole[0] = R1/5.068; //in fm
 	solDipole->SetParameters(par_solDipole);
 	MConfigLines(solDipole,3);
+	//MONOPOLE + DIPOLE complete
+	TF1 *solMonDi = new TF1("solMonDi","[0]*(1.0/(2.0*TMath::Pi()*[1]))*TMath::BesselK0(x/sqrt([1])) + (1.0-[0])*(x/(4.0*TMath::Pi()*pow([2],3.0/2.0)))*TMath::BesselK1(x/sqrt([2]))",0.0,2.0);
+	Double_t par_solMonDi[3];
+	par_solMonDi[0] = parFit[0]->GetMean(1);
+	par_solMonDi[1] = parFit[1]->GetMean(1)*0.197327*0.197327;
+	par_solMonDi[2] = parFit[2]->GetMean(1)*0.197327*0.197327;
+	for(i=0;i<3;i++) 
+		cout << "parFit[" << i << "]_mean = " << parFit[i]->GetMean(1) << endl;
+	solMonDi->SetParameters(par_solMonDi);
+	MConfigLines(solMonDi,4);
 
 	// Plotting
 	cout << "Plotting charge distribution evaluation..." << endl;
@@ -313,7 +332,7 @@ int UncertaintyPion(TString inData) {
 			gr5[i]->GetXaxis()->SetLimits(0.0,1.0);
 			gr5[i]->GetYaxis()->CenterTitle();
 			gr5[i]->GetYaxis()->SetTitleOffset(1.3);
-			gr5[i]->GetYaxis()->SetRangeUser(-1.0,4.0);
+			gr5[i]->GetYaxis()->SetRangeUser(0.0,5.0);
 			gr5[i]->Draw("al");
 		}
 		else gr5[i]->Draw("same");
@@ -321,11 +340,13 @@ int UncertaintyPion(TString inData) {
 	//Including analytical solutions
 	solMonopole->Draw("lsame");
 	solDipole->Draw("lsame");
+	solMonDi->Draw("lsame");
 	//Creating Legend
-	TLegend *legb = new TLegend(0.35,0.72,0.85,0.87);
+	TLegend *legb = new TLegend(0.25,0.72,0.85,0.87);
 	//legb->SetTextFont(50);
 	legb->SetTextSize(0.025);
 	legb->AddEntry(gr5[0],"Fitted (monopole + dipole) functions","l");
+	legb->AddEntry(solMonDi,"Complete (monopole + dipole) in Q^{2}","l");
 	legb->AddEntry(solMonopole,"Monopole - analytical solution","l");
 	legb->AddEntry(solDipole,"Dipole - analytical solution","l");
 	legb->Draw();
@@ -381,6 +402,7 @@ void PlotFF(TNtuple *FF, Double_t R1, Double_t *range) {
 
 	FF1m->GetXaxis()->SetTitle("Q^{2} (GeV^{2})");
 	FF1m->GetYaxis()->SetTitle("Q^{2}.F_{#pi}");
+	FF1m->GetXaxis()->SetLimits(0.0,1.1*range[1]);
 	FF1m->GetXaxis()->CenterTitle();
 	FF1m->GetYaxis()->CenterTitle();
 	FF1m->GetYaxis()->SetTitleOffset(1.5);
