@@ -1,4 +1,4 @@
-#include<cstdio>
+/*#include<cstdio>
 #include<TROOT.h>
 #include<TRint.h>
 #include<stdlib.h>
@@ -19,8 +19,10 @@
 //#include<iostream>
 #include<TImage.h>
 #include<TRandom.h>
+#include<TLatex.h>*/
 
 // MARCO FUNCTIONS
+#include "../MLibraries/MallIncludes.h"
 #include "../MLibraries/MConfigGraphs.h"
 #include "../MLibraries/MMultiFits.h"
 
@@ -80,7 +82,7 @@ int UncertaintyPion(TString inData) {
 	range[1] = FF->GetMaximum("Q2");
 	// pdata->Scan(); // to show data
 
-// APAGAR!!!!
+// APAGAR!!!! - Usar somente para mostrar maior range
 //range[1] = 30.0;
 
 	// Output file
@@ -142,7 +144,7 @@ int UncertaintyPion(TString inData) {
 	for(n1=1; (ZeroBesselJ0(n1)/R1) <= TMath::Sqrt(Ecut_F1); n1++);
 	n1--; // The last term didn't match the condition, so subtr. one
 
-//APAGAR!!!!!!
+//APAGAR!!!!!! Usar somente se quiser especificar o numero de termos (comentar as linhas <>, do ciclo
 //n1=3;
 
 
@@ -161,7 +163,7 @@ int UncertaintyPion(TString inData) {
 	FF->Draw("Q2:F1:sF1","","goff");
 	TGraphErrors *origData = new TGraphErrors(FF->GetSelectedRows(),FF->GetV1(),FF->GetV2(),0,FF->GetV3());
 	MConfigPoints(origData,2);
-	MConfigAxis(origData,"Multi Fits of F_{#pi}","Q^{2} (GeV^{2})","F_{#pi}(Q^{2})");
+	MConfigAxis(origData,"","Q^{2} (GeV^{2})","F_{#pi}(Q^{2})");
 	origData->Draw("ap");
 	
 	//TGraphErrors *newData;
@@ -191,15 +193,17 @@ int UncertaintyPion(TString inData) {
 	FF->Draw("Q2:(Q2*F1):(Q2*sF1)","","goff");
 	TGraphErrors *origData2 = new TGraphErrors(FF->GetSelectedRows(),FF->GetV1(),FF->GetV2(),0,FF->GetV3());
 	MConfigPoints(origData2,2);
-	MConfigAxis(origData2,"Multi Fits of F_{#pi}","Q^{2} (GeV^{2})","Q^{2}.F_{#pi}(Q^{2})");
+	MConfigAxis(origData2,"","Q^{2} (GeV^{2})","Q^{2}.F_{#pi}(Q^{2})");
+	//MConfigAxis(origData2,"Multi Fits of F_{#pi}","Q^{2} (GeV^{2})","Q^{2}.F_{#pi}(Q^{2})");
 	origData2->GetXaxis()->SetLimits(0.0,1.1*range[1]);
+	origData2->GetYaxis()->SetRangeUser(0.0,1.1);
 	origData2->Draw("ap");
 	TF1 *fitsQ2[nfits];
 
 	for(i=0; i<nfits; i++) {
 		fitsQ2[i] = new TF1("fitsQ2i",MfitFQ2,range[0],range[1],3); //care with npar=3
 		fitsQ2[i]->SetParameters(fits[i]->GetParameters());
-		MConfigLines(fitsQ2[i],13,0.2);
+		MConfigLines(fitsQ2[i],13,1.0);
 		fitsQ2[i]->Draw("same");
 	}
 	origData2->Draw("psame");
@@ -215,14 +219,98 @@ int UncertaintyPion(TString inData) {
 	dipole->SetLineStyle(1);
 	dipole->SetParameter(0,pow(R1/5.068/0.197327,2.0)/12.0);
 	dipole->Draw("same");
+
+	//Drawing JLAB 12 data, if wanted
+	Int_t drawJlab12 = 0;
+	TGraphErrors *jlab12;
+	if(drawJlab12) {
+		Double_t xjlab12[7] = {0.3,1.6,2.45,3.5,4.5,5.25,6.0};
+		Double_t yjlab12[7] = {0.5,0.5,0.5,0.5,0.5,0.5,0.5};
+		Double_t ejlab12[7] = {0.026,0.018,0.015,0.020,0.0215,0.025,0.033};
+		jlab12 = new TGraphErrors(7,xjlab12,yjlab12,0,ejlab12);
+		jlab12->SetMarkerColor(4);
+		jlab12->SetMarkerStyle(33);
+		jlab12->SetMarkerSize(1);
+		jlab12->Draw("psame");
+	}
+
+	//Drawing EIC data, if wanted
+	Int_t drawEIC = 0;
+	TGraphErrors *eic5, *eic10, *eic15;
+	if(drawEIC) {
+		Double_t xeic5[6] = {5.0,6.0,7.5,10.0,12.5,15.0};
+		Double_t yeic5[6] = {0.6,0.6,0.6,0.6,0.6,0.6};
+		Double_t eeic5[6] = {0.05,0.05,0.05,0.04,0.04,0.04};
+		eic5 = new TGraphErrors(6,xeic5,yeic5,0,eeic5);
+		eic5->SetMarkerColor(6);
+		eic5->SetMarkerStyle(33);
+		eic5->SetMarkerSize(1);
+		eic5->Draw("psame");
+	}
+	if(drawEIC) {
+		Double_t xeic10[5] = {10.0,12.5,15.0,17.5,20.0};
+		Double_t yeic10[5] = {0.7,0.7,0.7,0.7,0.7};
+		Double_t eeic10[5] = {0.04,0.03,0.04,0.04,0.04};
+		eic10 = new TGraphErrors(5,xeic10,yeic10,0,eeic10);
+		eic10->SetMarkerColor(8);
+		eic10->SetMarkerStyle(33);
+		eic10->SetMarkerSize(1);
+		eic10->Draw("psame");
+	}
+	if(drawEIC) {
+		Double_t xeic15[4] = {15.0,17.5,20.0,25.0};
+		Double_t yeic15[4] = {0.8,0.8,0.8,0.8};
+		Double_t eeic15[4] = {0.03,0.03,0.03,0.03};
+		eic15 = new TGraphErrors(4,xeic15,yeic15,0,eeic15);
+		eic15->SetMarkerColor(28);
+		eic15->SetMarkerStyle(33);
+		eic15->SetMarkerSize(1);
+		eic15->Draw("psame");
+	}
+
+
+	//Drawing bands, if wanted
+	Int_t drawBands = 0; //1-YES, 0-NO
+	TGraph *grshade1 = new TGraph(5);
+	TGraph *grshadec1 = new TGraph(5);
+	if(drawBands) {
+		Double_t shade1xlim[2] = {12.0, 15.0};
+		Double_t shade1ylim[2] = {0.2, 0.4};
+		grshade1->SetPoint(0,shade1xlim[0],shade1ylim[0]);
+		grshade1->SetPoint(1,shade1xlim[1],shade1ylim[0]);
+		grshade1->SetPoint(2,shade1xlim[1],shade1ylim[1]);
+		grshade1->SetPoint(3,shade1xlim[0],shade1ylim[1]);
+		grshade1->SetPoint(4,shade1xlim[0],shade1ylim[0]);
+		grshadec1->SetPoint(0,shade1xlim[0],shade1ylim[0]);
+		grshadec1->SetPoint(1,shade1xlim[1],shade1ylim[0]);
+		grshadec1->SetPoint(2,shade1xlim[1],shade1ylim[1]);
+		grshadec1->SetPoint(3,shade1xlim[0],shade1ylim[1]);
+		grshadec1->SetPoint(4,shade1xlim[0],shade1ylim[0]);
+		grshade1->SetFillStyle(3144);
+		grshade1->SetFillColor(2);
+		//grshadec1->SetLineColor(1);
+		//grshadec1->SetLineWidth(1);
+		grshade1->Draw("fsame");
+		grshadec1->Draw("lsame");
+	}
+
 	// Legend 
-	TLegend *leg = new TLegend(0.14,0.72,0.5,0.87);
+	TLegend *leg = new TLegend(0.43,0.72,0.95,0.98);
 	//leg->SetTextFont(50);
 	leg->SetTextSize(0.025);
 	leg->AddEntry(origData2,"Data points","p");
 	leg->AddEntry(fitsQ2[0],"Evaluated fits","l");
 	leg->AddEntry(monopole,Form("Monopole (R = %.3f fm)",sqrt(6.0*pow(0.197327,2.0)*monopole->GetParameter(0))));
 	leg->AddEntry(dipole,Form("Dipole (R = %.3f fm)",sqrt(12.0*pow(0.197327,2.0)*dipole->GetParameter(0))));
+	if(drawBands) {
+		leg->AddEntry(grshade1,"Future experiment - JLab @ 12GeV","f");
+	}
+	if(drawJlab12) leg->AddEntry(jlab12,"Future experiment - JLab @ 12GeV","p");
+	if(drawEIC) {
+		leg->AddEntry(eic5,"Future experiment - EIC E_{p}=5GeV","p");
+		leg->AddEntry(eic10,"Future experiment - EIC E_{p}=10GeV","p");
+		leg->AddEntry(eic15,"Future experiment - EIC E_{p}=15GeV","p");
+	}
 	leg->Draw();
 	// Saving figure
 	pad2png(cf2,"MultiFitsQ2.png");	
@@ -243,48 +331,8 @@ int UncertaintyPion(TString inData) {
 	// EVALUATION OF CHARGE DISTRIBUTION! //
 	////////////////////////////////////////
 
-	// Creating the NTuple and evaluating the sum (eq 5)
-	cout << "<Marco> Evaluating charge distribution..." << endl;
-	Float_t rangeB[2] = {0.0, 1.5};
-	Int_t nb = 100; // number of points (in b) to be calculated
-	TTree *tr = new TTree("tr","Tree_ro1");
-	//TNtuple *ro1 = new TNtuple("ro1","ro_ch(b)","b:ro");
-	Float_t ba, Xn, tauN, F1, F2;
-	Float_t Q2n, sum;
-	TBranch *b = tr->Branch("b",&ba,"b/F");
-	// Filling b
-	for(ba=rangeB[0]; ba<=rangeB[1]; ba += (rangeB[1]-rangeB[0])/((double)(nb-1))) { b->Fill(); }
-	tr->SetEntries(b->GetEntries());
-	// Running the charge calculation for each fit of F(Q^2)
-	Float_t bb;
-	TBranch *ros[nfits];
-	for(j=0; j<nfits; j++) {
-		cout << "Calculating charge dist. for fit " << j+1 << "/" << nfits << endl;
-		ros[j] = tr->Branch(Form("ro%d",j),&sum,Form("ro%d/F",j));
-		// Running the calculation for each b
-		if(j==0) { cout << endl << "    invoqued Q2 = "; }
-		for(bb=rangeB[0]; bb<=rangeB[1]; bb += (rangeB[1]-rangeB[0])/((double)(nb-1))) {
-			sum=0.0;
-			if(bb<=(R1/5.068)) {
-				for(i=1; i<=n1; i++) {
-					// R1 in GeV^-1
-					Xn = ZeroBesselJ0(i);
-					Q2n = pow(Xn/R1,2.0);
-					if(j==0 && bb==rangeB[0]) { cout << Q2n << " "; };
-					//tauN = Q2n/(4.0*pow(0.93827,2.0));
-					F1=fits[j]->Eval(Q2n);
-					sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
-				}
-				sum /= (TMath::Pi()*pow(R1/5.068,2.0));
-				//cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
-			}
-			else sum=0.0;
-			ros[j]->Fill();
-		}
-		if(j==0) { cout << endl; };
-	}
-	f->Write();
-	
+// IF ONE WANTS TO RUN A SERIES OF CALCULATION, UNCOMMENT THE <> LINES
+
 	//Writting exact solutions (for ideal complete Q2 data), from analytical solution
 	//MONOPOLE
 	TF1 *solMonopole = new TF1("solMonopole","(1.0/(2.0*TMath::Pi()))*(6.0/pow([0],2))*TMath::BesselK0(sqrt(6.0)*x/[0])",0.0,2.0); //[0] is R1 in units of b
@@ -309,6 +357,58 @@ int UncertaintyPion(TString inData) {
 	solMonDi->SetParameters(par_solMonDi);
 	MConfigLines(solMonDi,4);
 
+	//Creating date
+	TDatime da;
+	da.GetDate();
+	TString da2 = da.AsSQLString();
+
+	// Creating the NTuple and evaluating the sum (eq 5)
+	cout << "<Marco> Evaluating charge distribution..." << endl;
+	Float_t rangeB[2] = {0.0, 1.5};
+	Int_t nb = 100; // number of points (in b) to be calculated
+	Float_t ba, Xn, tauN, F1, F2;
+	Float_t Q2n, sum, bb;
+	Double_t xlim[2] = {0.0, 1.0};
+	Double_t ylim[2] = {0.0, 5.0};
+//<>
+//for(n1=1;n1<=30;n1++) {
+//<>
+	TTree *tr = new TTree("tr","Tree_ro1");
+	//TNtuple *ro1 = new TNtuple("ro1","ro_ch(b)","b:ro");
+	TBranch *b = tr->Branch("b",&ba,"b/F");
+	// Filling b
+	for(ba=rangeB[0]; ba<=rangeB[1]; ba += (rangeB[1]-rangeB[0])/((double)(nb-1))) { b->Fill(); }
+	tr->SetEntries(b->GetEntries());
+	// Running the charge calculation for each fit of F(Q^2)
+	TBranch *ros[nfits];
+	for(j=0; j<nfits; j++) {
+		cout << "Calculating charge dist. for fit " << j+1 << "/" << nfits << endl;
+		ros[j] = tr->Branch(Form("ro%d",j),&sum,Form("ro%d/F",j));
+		// Running the calculation for each b
+		if(j==0) { cout << endl << "n1=" << n1 << endl << "    invoqued Q2 = "; }
+		for(bb=rangeB[0]; bb<=rangeB[1]; bb += (rangeB[1]-rangeB[0])/((double)(nb-1))) {
+			sum=0.0;
+			if(bb<=(R1/5.068)) {
+				for(i=1; i<=n1; i++) {
+					// R1 in GeV^-1
+					Xn = ZeroBesselJ0(i);
+					Q2n = pow(Xn/R1,2.0);
+					if(j==0 && bb==rangeB[0]) { cout << Q2n << " "; };
+					//tauN = Q2n/(4.0*pow(0.93827,2.0));
+					F1=fits[j]->Eval(Q2n);
+					sum += pow(TMath::BesselJ1(Xn),-2.0)*F1*TMath::BesselJ0(Xn*bb/(R1/5.068));
+				}
+				sum /= (TMath::Pi()*pow(R1/5.068,2.0));
+				//cout << "<Marco> bb = " << bb << "\t ro = " << sum << endl;
+			}
+			else sum=0.0;
+			ros[j]->Fill();
+		}
+		if(j==0) { cout << endl; };
+	}
+	//If want to save data, uncomment here
+	//f->Write();
+	
 	// Plotting
 	cout << "Plotting charge distribution evaluation..." << endl;
 	TCanvas *c5 = new TCanvas("c5","ChargeDistributionF1",600,600);
@@ -324,15 +424,19 @@ int UncertaintyPion(TString inData) {
 		//gStyle->SetEndErrorSize(3);
 		//gr5[i]->Draw("AP");
 		MConfigGraphLines(gr5[i],13,0.2);
+//<>
+MConfigGraphLines(gr5[i],13,2);
+//<>
+
 		if(i==0) {
-			gr5[i]->SetTitle("Pion Analysis - #rho_{ch} (from F_{#pi})");
+			//gr5[i]->SetTitle("Pion Analysis - #rho_{ch} (from F_{#pi})");
 			gr5[i]->GetXaxis()->SetTitle("b (fm)");
 			gr5[i]->GetYaxis()->SetTitle("#rho_{ch}(b) (fm^{-2})");
 			gr5[i]->GetXaxis()->CenterTitle();
-			gr5[i]->GetXaxis()->SetLimits(0.0,1.0);
+			gr5[i]->GetXaxis()->SetLimits(xlim[0],xlim[1]);
 			gr5[i]->GetYaxis()->CenterTitle();
 			gr5[i]->GetYaxis()->SetTitleOffset(1.3);
-			gr5[i]->GetYaxis()->SetRangeUser(0.0,5.0);
+			gr5[i]->GetYaxis()->SetRangeUser(ylim[0],ylim[1]);
 			gr5[i]->Draw("al");
 		}
 		else gr5[i]->Draw("same");
@@ -350,11 +454,24 @@ int UncertaintyPion(TString inData) {
 	legb->AddEntry(solMonopole,"Monopole - analytical solution","l");
 	legb->AddEntry(solDipole,"Dipole - analytical solution","l");
 	legb->Draw();
+	//Writting on plot
+//<>
+	TLatex l;
+	l.SetTextSize(0.04);
+	l.DrawLatex(xlim[0]+(xlim[1]-xlim[0])*0.75,ylim[0]+(ylim[1]-ylim[0])*0.63,Form("#color[4]{n = %d}",n1));
+	l.DrawLatex(xlim[0]+(xlim[1]-xlim[0])*0.68,ylim[0]+(ylim[1]-ylim[0])*0.53,Form("#color[2]{Q^{2} = %.1f GeV^{2}}",pow(ZeroBesselJ0(n1)/R1,2.0)));
+	TLatex l2;
+	l2.SetTextSize(0.02);
+	l2.DrawLatex(xlim[0]+(xlim[1]-xlim[0])*0.68,ylim[0]+(ylim[1]-ylim[0])*0.97,"MAPC @ " + da2);
+//<>
 	// Saving Ge Canvas
-	pad2png(c5,"ro_ch-F1.png");
-	c5->Print("ro_ch-F1.eps");
-	//delete c5;
-
+	pad2png(c5,Form("ro_ch-F1_n%d.png",n1));
+	c5->Print(Form("ro_ch-F1_n%d.eps",n1));
+//<>
+/*for(j=0;j<nfits;j++) delete ros[j], gr5[j];
+delete b, c5, legb, l, l2, tr;
+}*/
+//<>
 	// Concluding code
 	f->Close();
 	cout << "<Marco> Done!" << endl;
@@ -385,7 +502,7 @@ void PlotFF(TNtuple *FF, Double_t R1, Double_t *range) {
 	//FF1->Clear();
 	FF1m->Add(FF1gr[0],"p");
 	//FF1m->Add(FF1gr[1],"c");
-	FF1m->SetTitle("Q^{2}.F_{#pi} x Q^{2}");
+	//FF1m->SetTitle("Q^{2}.F_{#pi} x Q^{2}");
 	FF1m->Draw("al");
 
 	TF1 *monopole = new TF1("monopole","x*1.0/(1.0+[0]*x)",0.0,range[1]);

@@ -58,7 +58,7 @@ void MConfigCanvas(TCanvas *c1, Int_t islogy=0) {
 }
 
 void MConfigAxis(TGraph *gr, TString title, TString xlabel, TString ylabel) {
-	gr->SetTitle(title.Data());
+	if(!title.Length()) gr->SetTitle(title.Data());
 	gr->GetXaxis()->SetTitle(xlabel.Data());
 	gr->GetXaxis()->CenterTitle();
 	gr->GetYaxis()->CenterTitle();

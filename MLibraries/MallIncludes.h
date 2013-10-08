@@ -26,3 +26,4 @@
 #include<TList.h>
 #include<TClonesArray.h>
 #include<TObjString.h>
+#include<TLatex.h>
