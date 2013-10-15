@@ -1,6 +1,6 @@
-#include<cstdio>
-#include<stdlib.h>
-#include<Riostream.h>
+#include "../MLibraries/MallIncludes.h"
+
+int Instructions(void);
 
 int ConvertADCFiles(TString inFile="", TString outFile="", Int_t ch0=-2, Int_t ch1=-2, Int_t ch2=-2, Int_t ch3=-2, Int_t ch4=-2, Int_t ch5=-2, Int_t ch6=-2, Int_t ch7=-2, Int_t ch8=-2, Int_t ch9=-2, Int_t ch10=-2, Int_t ch11=-2) {
 
@@ -40,7 +40,7 @@ int ConvertADCFiles(TString inFile="", TString outFile="", Int_t ch0=-2, Int_t c
 	TString dir = gSystem->UnixPathName(gInterpreter->GetCurrentMacroName());
 	dir.ReplaceAll("ConvertADCFiles.C","");
 	dir.ReplaceAll("/./","/");
-	printf("Current Directory: %s\n",dir.Data());
+	//printf("Current Directory: %s\n",dir.Data());
 
 	// Opening input file
 	ifstream in;
@@ -60,11 +60,14 @@ int ConvertADCFiles(TString inFile="", TString outFile="", Int_t ch0=-2, Int_t c
 		return 1;
 	}
 
+	long nlines=0;
+	cout << "<Marco> Converting file..." << endl;
 	while(1) {
 		in.getline(line,100);
+		nlines++;
 		if(in.eof()) break;
 		if(in.fail()) {
-			printf(" Marco: Fail reading input file.\n");
+			cout << " Marco: Fail reading input file, line " << nlines << endl;
 			return 1;
 		}
 		ss << line;
@@ -74,15 +77,21 @@ int ConvertADCFiles(TString inFile="", TString outFile="", Int_t ch0=-2, Int_t c
 			sscanf(line,"%x",&l[i]);
 		}
 		
-		for(i=0;i<Nch;i++) out << l[ch[i]] << " ";
+		for(i=0;i<Nch;i++) {
+			out << l[ch[i]] << " ";
+			if(nlines<10) cout << l[ch[i]] << " ";
+		}
 		out << endl; 
+		if(nlines<=10) cout << endl;
+		if(nlines%100000==0 && nlines!=0) cout << nlines << endl;
 	}
 	
 	in.close();
 	out.close();
 	return 0;
 }
-void Instructions(void) {
+
+int Instructions(void) {
         printf("\nInstructions:\n");
         printf("  .\\ConvertADCFiles <input> <output> <ch0> <ch1> ...\n");
         printf("      - <input> - input file name.\n");
@@ -94,5 +103,19 @@ void Instructions(void) {
 	printf("      * Special usage: if <ch1> is -1, all channels will be saved.\n\n");
         printf(" by Marco Antonio Pannunzio Carmignotto - 04/20/2012\n\n");
 
-        return;
+        return 1;
+}
+
+int main(int argc, char *argv[]) {
+	if(argc < 4) return Instructions();
+	
+	Int_t i;
+	Int_t ch[12];
+	for(i=0;i<12;i++) ch[i]=-2;
+
+	TString inFile = argv[1];
+	TString outFile = argv[2];
+	for(i=0; (i+3)<argc; i++) ch[i]=atoi(argv[i+3]);
+
+	return ConvertADCFiles(inFile, outFile, ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7], ch[8], ch[9], ch[10], ch[11]);
 }

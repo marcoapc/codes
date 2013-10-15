@@ -10,6 +10,7 @@
 int ReadScanning(TString inFile, TString outFile, Double_t gain=0.0, Int_t nlin=25, Int_t ncol=25, Int_t nptos=500, Int_t GraphOpt=0) {
         /* Running command example in root:
 	.x ReadScanning.C("600.txt","600.root",1,100,100,1000)
+	* if gain==0, it will try to fit Pedestal and SEP to determine gain.
         */
 
 	// Variables

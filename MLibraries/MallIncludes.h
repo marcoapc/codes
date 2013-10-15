@@ -1,4 +1,5 @@
 #include<cstdio>
+#include<iostream>
 #include<string.h>
 #include<TROOT.h>
 #include<TRint.h>
@@ -27,3 +28,5 @@
 #include<TClonesArray.h>
 #include<TObjString.h>
 #include<TLatex.h>
+#include<TInterpreter.h>
+#include<sstream>

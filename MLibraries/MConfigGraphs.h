@@ -49,10 +49,11 @@ void MConfigLines(TF1 *f, Int_t color=1, Int_t width=2, Int_t style=1) {
 	return;
 }
 
-void MConfigCanvas(TCanvas *c1, Int_t islogy=0) {
+void MConfigCanvas(TCanvas *c1, Int_t islogy=0, Int_t islogx=0) {
 	c1->SetGrid();
         c1->GetFrame()->SetBorderSize(10);
 	if(islogy) c1->SetLogy();
+	if(islogx) c1->SetLogx();
 
 	return;
 }
