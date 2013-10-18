@@ -25,6 +25,7 @@
 #include "../MLibraries/MallIncludes.h"
 #include "../MLibraries/MConfigGraphs.h"
 #include "../MLibraries/MMultiFits.h"
+#include "CreateErrorBand.C"
 
 //TF1 *MakeGe(TNtuple *pdata, Double_t *range);
 //TF1 *MakeGm(TNtuple *pdata, Double_t *range);
@@ -56,7 +57,7 @@ int UncertaintyPion(TString inData) {
 	char line[500];
 	Double_t mu = 2.792782;
 	Int_t i, j, k;
-	TString outFile = "out.root";
+	TString outFile = "pionUncert"; // "n1 + .root" will be added later
 
 	// Important information/config
 	
@@ -82,11 +83,8 @@ int UncertaintyPion(TString inData) {
 	range[1] = FF->GetMaximum("Q2");
 	// pdata->Scan(); // to show data
 
-// APAGAR!!!! - Usar somente para mostrar maior range
-//range[1] = 30.0;
-
-	// Output file
-	TFile *f = new TFile(outFile.Data(),"RECREATE");
+// APAGAR!!!! - Usar somente para mostrar maior range (CAUTION: Q2 range used to evaluate charge distribution will be changed too)
+range[1] = 30.0;
 
 	//TF1 *ge_paper = MakeGe(pdata, range);
 	//TF1 *gm_paper = MakeGm(pdata, range);
@@ -144,6 +142,9 @@ int UncertaintyPion(TString inData) {
 	for(n1=1; (ZeroBesselJ0(n1)/R1) <= TMath::Sqrt(Ecut_F1); n1++);
 	n1--; // The last term didn't match the condition, so subtr. one
 
+	// Output file
+	TFile *f = new TFile(outFile+Form("%d.root",n1),"RECREATE");
+
 //APAGAR!!!!!! Usar somente se quiser especificar o numero de termos (comentar as linhas <>, do ciclo
 //n1=3;
 
@@ -156,7 +157,7 @@ int UncertaintyPion(TString inData) {
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 1000; // <- NUMBER OF FITS! (200)
+	const int nfits = 20; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -221,7 +222,7 @@ int UncertaintyPion(TString inData) {
 	dipole->Draw("same");
 
 	//Drawing JLAB 12 data, if wanted
-	Int_t drawJlab12 = 0;
+	Int_t drawJlab12 = 1;
 	TGraphErrors *jlab12;
 	if(drawJlab12) {
 		Double_t xjlab12[7] = {0.3,1.6,2.45,3.5,4.5,5.25,6.0};
@@ -235,7 +236,7 @@ int UncertaintyPion(TString inData) {
 	}
 
 	//Drawing EIC data, if wanted
-	Int_t drawEIC = 0;
+	Int_t drawEIC = 1;
 	TGraphErrors *eic5, *eic10, *eic15;
 	if(drawEIC) {
 		Double_t xeic5[6] = {5.0,6.0,7.5,10.0,12.5,15.0};
@@ -364,7 +365,7 @@ int UncertaintyPion(TString inData) {
 
 	// Creating the NTuple and evaluating the sum (eq 5)
 	cout << "<Marco> Evaluating charge distribution..." << endl;
-	Float_t rangeB[2] = {0.0, 1.5};
+	Float_t rangeB[2] = {0.0, 0.8};
 	Int_t nb = 100; // number of points (in b) to be calculated
 	Float_t ba, Xn, tauN, F1, F2;
 	Float_t Q2n, sum, bb;
@@ -407,7 +408,7 @@ int UncertaintyPion(TString inData) {
 		if(j==0) { cout << endl; };
 	}
 	//If want to save data, uncomment here
-	//f->Write();
+	f->Write();
 	
 	// Plotting
 	cout << "Plotting charge distribution evaluation..." << endl;
@@ -472,6 +473,10 @@ MConfigGraphLines(gr5[i],13,2);
 delete b, c5, legb, l, l2, tr;
 }*/
 //<>
+
+	// To create error band
+	CreateErrorBand(tr,nfits,solMonopole);
+
 	// Concluding code
 	f->Close();
 	cout << "<Marco> Done!" << endl;
