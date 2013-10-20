@@ -2,14 +2,21 @@
 
 // Function to be fitted (can change the function, not the input arguments!). Change number of parameters in the function creation if it changes here.
 Double_t MfitF(Double_t *x, Double_t *par) {
-	//// y = [0] * 1.0/(1.0+[1]*x) + (1-[0]) * 1.0/pow(1.0+[2]*x,2.0)
-	////return (par[0] + x[0]*par[1] + x[0]*x[0]*par[2]);
-	return (par[0] * 1.0/(1.0+par[1]*x[0]) + (1.0-par[0]) * 1.0/pow(1.0+par[2]*x[0],2.0));
+	return (par[0] * 1.0/(1.0+par[1]*x[0]) + (1.0-par[0]) * 1.0/pow(1.0+par[2]*x[0],2.0)); // MARCO <-- Emphirical function
 	//return (par[0]/pow(1.0+par[1]*x[0],2));
+}
+
+// Function to be fitted (can change the function, not the input arguments!). Change number of parameters in the function creation if it changes here.
+Double_t MfitFmonopole(Double_t *x, Double_t *par) {
+	return (1.0/(1.0+par[0]*x[0]));
 }
 
 Double_t MfitFQ2(Double_t *x, Double_t *par) {
 	return (x[0]*MfitF(x,par));
+}
+
+Double_t MfitFQ2monopole(Double_t *x, Double_t *par) {
+	return (x[0]*MfitFmonopole(x,par));
 }
 
 TF1 *CreateTF(Double_t xmin, Double_t xmax, Int_t npar) {
@@ -58,23 +65,31 @@ TGraph *MakeNewPoints(TNtuple *in, TRandom *r0) {
 }
 
 // Function that receive a TGraph "gr" and a TCanvas "c", fit the curve fiven by the function MfitF (showing it in c). Return a pointer to a vector with the fitted function.
-TF1 *ExecuteFit(TGraph *gr, TCanvas *c, Double_t *par0, Int_t quiet=0) {
+TF1 *ExecuteFit(TGraph *gr, TCanvas *c, Double_t *par0, Int_t FITtype, Int_t quiet=0) {
 	Int_t i;
 	Double_t xmin, xmax;
 	//Double_t *par;
 	Float_t nEntries;
-
-	const int npar = 3;
+	Int_t npar;
 
 	nEntries = gr->GetN();
 	xmin = TMath::MinElement(nEntries,gr->GetX());
 	xmax = TMath::MaxElement(nEntries,gr->GetX());
 	//cout << "xmin=" << xmin << " \txmax=" << xmax << endl;
 
-	TF1 *f = new TF1("f",MfitF,xmin,xmax,npar);
-	f->SetParLimits(0,0.0,1.0);
-	f->SetParLimits(1,0.0,20.0);
-	f->SetParLimits(2,0.0,20.0);
+	TF1 *f;
+	if(FITtype==0) {
+		npar = 3;
+		f = new TF1("f",MfitF,xmin,xmax,npar);
+		f->SetParLimits(0,0.0,1.0);
+		f->SetParLimits(1,0.0,20.0);
+		f->SetParLimits(2,0.0,20.0);
+	}
+	else if(FITtype==1) {
+		npar = 1;
+		f = new TF1("f",MfitFmonopole,xmin,xmax,npar);
+		f->SetParLimits(0,0.0,20.0);
+	}
 	MConfigLines(f, 13, 0.2);
 
 	f->SetParameters(par0);

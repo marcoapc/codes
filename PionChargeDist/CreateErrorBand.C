@@ -41,7 +41,7 @@ int CreateErrorBand(TTree *tr, Int_t n, TF1 *model, TString var="ro") {
 		// j runs over the radius (b)
 		for(j=0;j<npts;j++) {
 			br->GetEntry(j);
-			if(j==27) cout << "i=" << i << "\tT=" << T << endl;
+			//if(j==27) cout << "i=" << i << "\tT=" << T << endl;
 			a2[j] += T*T;
 			a[j] += T;
 		}
@@ -51,7 +51,7 @@ int CreateErrorBand(TTree *tr, Int_t n, TF1 *model, TString var="ro") {
 	for(j=0;j<npts;j++) {
 		Tmean[j] = a[j]/n;
 		Tstd[j] = sqrt((a2[j]-2.0*a[j]*Tmean[j]+n*Tmean[j]*Tmean[j])/(n-1.0));
-		cout << "j=" << j << "\tr=" << r[j] << "\tTmean=" << Tmean[j] << "\tTstd=" << Tstd[j] << endl;
+		//cout << "j=" << j << "\tr=" << r[j] << "\tTmean=" << Tmean[j] << "\tTstd=" << Tstd[j] << endl;
 
 		Tbandmin[j] = Tmean[j]-Tstd[j];
 		Tbandmax[j] = Tmean[j]+Tstd[j];
@@ -82,10 +82,11 @@ int CreateErrorBand(TTree *tr, Int_t n, TF1 *model, TString var="ro") {
 	grmax->Draw("lsame");
 	grshade->Draw("fsame");
 	grmean->Draw("lsame");
+
 /*
 	// Creating error graph
 	const int ngraphs = 4;
-	Int_t n1[ngraphs] = {3,4,5,6}; // terms in the expansion
+	Int_t n1[ngraphs] = {3,3,5,6}; // terms in the expansion for each type
 	TCanvas *c2 = new TCanvas("c2","c2",600,600);
 	Double_t *err[ngraphs];
 	for(i=0;i<ngraphs;i++) {

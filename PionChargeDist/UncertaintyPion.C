@@ -53,11 +53,16 @@ Double_t ZeroBesselJ0(Int_t n, Double_t min=0.0) {
 }
 
 int UncertaintyPion(TString inData) {
+
+	// CONTROL QUANTITIES
+	Int_t FITtype = 1; // 0 - mix mono dipole || 1 - monopole
+
 	// Variables
 	char line[500];
 	Double_t mu = 2.792782;
 	Int_t i, j, k;
-	TString outFile = "pionUncert"; // "n1 + .root" will be added later
+	//TString outFile = "pionUncert";// "n1 + .root" will be added later
+	TString outFile = "monoJlab12";// "n1 + .root" will be added later
 
 	// Important information/config
 	
@@ -84,7 +89,7 @@ int UncertaintyPion(TString inData) {
 	// pdata->Scan(); // to show data
 
 // APAGAR!!!! - Usar somente para mostrar maior range (CAUTION: Q2 range used to evaluate charge distribution will be changed too)
-range[1] = 30.0;
+//range[1] = 30.0;
 
 	//TF1 *ge_paper = MakeGe(pdata, range);
 	//TF1 *gm_paper = MakeGm(pdata, range);
@@ -157,7 +162,7 @@ range[1] = 30.0;
 	/////////////////////////////////
 	// Making several fits to data //
 	/////////////////////////////////
-	const int nfits = 20; // <- NUMBER OF FITS! (200)
+	const int nfits = 200; // <- NUMBER OF FITS! (200)
 	TRandom *r0 = new TRandom();
 	TCanvas *cf = new TCanvas("cf","MultiFits",600,600);
 	MConfigCanvas(cf);
@@ -170,19 +175,37 @@ range[1] = 30.0;
 	//TGraphErrors *newData;
 	TGraph *newData;
 	TF1 *fits[nfits];
-	const int nparFit=3;
-	Double_t par0[nparFit] = {0.5, 1.2, 1.1};
-	//Double_t par0[nparFit] = {0.25, 0.2, 2.75};
+	const int nparFit=3; // use this as the maximum of all npar that can be used
+	Int_t npar;
+	Double_t par0[nparFit];
 	TH1F *parFit[nparFit];
-	parFit[0] = new TH1F("par0","MultiFit par[0]",50,0.0,1.0);
-	parFit[1] = new TH1F("par1","MultiFit par[1]",50,0.0,2.0);
-	parFit[2] = new TH1F("par2","MultiFit par[2]",50,0.0,2.0);
-	for(i=0; i<nfits; i++) {
-		newData=MakeNewPoints(FF,r0);
-		fits[i]=ExecuteFit(newData,cf,par0,1); //last 1 means quiet fit, don't show fitted paramenters. If 0, will show fitted parmts.
-		for(j=0; j<nparFit; j++)
-			parFit[j]->Fill(fits[i]->GetParameter(j));
-		delete newData;
+	if(FITtype==0) {
+		npar=3;
+		par0[0] = 0.5;
+		par0[1] = 1.2;
+		par0[2] = 1.1;
+		parFit[0] = new TH1F("par0","MultiFit par[0]",50,0.0,1.0);
+		parFit[1] = new TH1F("par1","MultiFit par[1]",50,0.0,2.0);
+		parFit[2] = new TH1F("par2","MultiFit par[2]",50,0.0,2.0);
+		for(i=0; i<nfits; i++) {
+			newData=MakeNewPoints(FF,r0);
+			fits[i]=ExecuteFit(newData,cf,par0,FITtype,1); //last 1 means quiet fit, don't show fitted paramenters. If 0, will show fitted parmts.
+			for(j=0; j<npar; j++)
+				parFit[j]->Fill(fits[i]->GetParameter(j));
+			delete newData;
+		}
+	}
+	else if(FITtype==1) {
+		npar=1;
+		par0[0] = 1.2;
+		parFit[0] = new TH1F("par0","MultiFit par[0]",50,0.0,2.0);
+		for(i=0; i<nfits; i++) {
+			newData=MakeNewPoints(FF,r0);
+			fits[i]=ExecuteFit(newData,cf,par0,FITtype,1); //last 1 means quiet fit, don't show fitted paramenters. If 0, will show fitted parmts.
+			for(j=0; j<npar; j++)
+				parFit[j]->Fill(fits[i]->GetParameter(j));
+			delete newData;
+		}
 	}
 	origData->Draw("psame");
 	pad2png(cf,"MultiFits.png");
@@ -200,9 +223,11 @@ range[1] = 30.0;
 	origData2->GetYaxis()->SetRangeUser(0.0,1.1);
 	origData2->Draw("ap");
 	TF1 *fitsQ2[nfits];
-
 	for(i=0; i<nfits; i++) {
-		fitsQ2[i] = new TF1("fitsQ2i",MfitFQ2,range[0],range[1],3); //care with npar=3
+		if(FITtype==0)
+			fitsQ2[i] = new TF1("fitsQ2i",MfitFQ2,range[0],range[1],3); //care with npar=3
+		else if(FITtype==1)
+			fitsQ2[i] = new TF1("fitsQ2i",MfitFQ2monopole,range[0],range[1],1); //care with npar=1
 		fitsQ2[i]->SetParameters(fits[i]->GetParameters());
 		MConfigLines(fitsQ2[i],13,1.0);
 		fitsQ2[i]->Draw("same");
@@ -319,7 +344,7 @@ range[1] = 30.0;
 
 	// Histograms of the fitted parameters
 	TCanvas *pp[nparFit];
-	for(j=0; j<nparFit; j++) {
+	for(j=0; j<npar; j++) {
 		pp[j] = new TCanvas(Form("pp[%d]",j),Form("par[%d] from MultiFit",j),600,600);
 		MConfigCanvas(pp[j]);
 		MConfigHist(parFit[j],Form("par[%d]",j),"Parameter value","counts");
@@ -349,11 +374,18 @@ range[1] = 30.0;
 	MConfigLines(solDipole,3);
 	//MONOPOLE + DIPOLE complete
 	TF1 *solMonDi = new TF1("solMonDi","[0]*(1.0/(2.0*TMath::Pi()*[1]))*TMath::BesselK0(x/sqrt([1])) + (1.0-[0])*(x/(4.0*TMath::Pi()*pow([2],3.0/2.0)))*TMath::BesselK1(x/sqrt([2]))",0.0,2.0);
-	Double_t par_solMonDi[3];
-	par_solMonDi[0] = parFit[0]->GetMean(1);
-	par_solMonDi[1] = parFit[1]->GetMean(1)*0.197327*0.197327;
-	par_solMonDi[2] = parFit[2]->GetMean(1)*0.197327*0.197327;
-	for(i=0;i<3;i++) 
+	Double_t par_solMonDi[nparFit];
+	if(FITtype==0) {
+		par_solMonDi[0] = parFit[0]->GetMean(1);
+		par_solMonDi[1] = parFit[1]->GetMean(1)*0.197327*0.197327;
+		par_solMonDi[2] = parFit[2]->GetMean(1)*0.197327*0.197327;
+	}
+	else if(FITtype==1) {
+		par_solMonDi[0] = 0.5;//parFit[0]->GetMean(1);
+		par_solMonDi[1] = parFit[0]->GetMean(1)*0.197327*0.197327;
+		par_solMonDi[2] = parFit[0]->GetMean(1)*0.197327*0.197327;
+	}
+	for(i=0;i<npar;i++) 
 		cout << "parFit[" << i << "]_mean = " << parFit[i]->GetMean(1) << endl;
 	solMonDi->SetParameters(par_solMonDi);
 	MConfigLines(solMonDi,4);
@@ -382,8 +414,9 @@ range[1] = 30.0;
 	tr->SetEntries(b->GetEntries());
 	// Running the charge calculation for each fit of F(Q^2)
 	TBranch *ros[nfits];
+	cout << endl;
 	for(j=0; j<nfits; j++) {
-		cout << "Calculating charge dist. for fit " << j+1 << "/" << nfits << endl;
+		printf("\rCalculating charge dist. for fit %d/%d",j+1, nfits);
 		ros[j] = tr->Branch(Form("ro%d",j),&sum,Form("ro%d/F",j));
 		// Running the calculation for each b
 		if(j==0) { cout << endl << "n1=" << n1 << endl << "    invoqued Q2 = "; }
